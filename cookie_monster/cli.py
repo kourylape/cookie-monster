@@ -62,13 +62,13 @@ def scan_url(url):
                                 headers=headers)
             status = r.json().get('status')
             if status == 'PENDING':
-                print('[PENDING] %s') % url
+                print('[PENDING] %s' % url)
                 time.sleep(60)
             if status == 'FAILED':
-                print('[ERROR] %s') % url
+                print('[ERROR] %s' % url)
                 break
             if status == 'SUCCESS':
-                print('[SUCCESS] %s') % url
+                print('[SUCCESS] %s' % url)
                 break
 
     return url_id
@@ -117,7 +117,8 @@ def main():
 
     # create any directories needed for the CSV
     path = os.path.dirname(filename)
-    os.makedirs(path, exist_ok=True)
+    if path:
+        os.makedirs(path, exist_ok=True)
 
     # all the cookie ids
     cookies = {

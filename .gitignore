@@ -1,0 +1,20 @@
+# OS Files
+*~
+.DS_Store
+._.*
+.svn
+.cvs
+*.bak
+*.swp
+Thumbs.db
+
+# IDE
+.vscode
+
+# Project Files
+*.log
+*.pyc
+*.egg-info/
+dist/
+build/
+dev/

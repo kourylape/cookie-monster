@@ -5,7 +5,7 @@ with open("README.md", 'r') as f:
 
 setup(
     name='cookie-monster',
-    version='0.2',
+    version='0.3',
     description='Scan a sites sitemap.xml file using webcookies.org and output the results to a CSV.',
     long_description=LONG_DESC,
     author='Koury Lape',

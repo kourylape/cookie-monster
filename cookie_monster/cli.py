@@ -71,7 +71,11 @@ def scan_url(url):
                 print('[SUCCESS] %s' % url)
                 break
 
-    return url_id
+    if r.status_code != 201 or r.status_code != 409:
+        print('[%s ERROR] Scanning: %s' % (r.status_code, url))
+        return False
+    else:
+        return url_id
 
 def get_results(url_id):
     """Get the scanned results of a URL"""
@@ -133,19 +137,20 @@ def main():
         while True:
             url = q.get()
             uid = scan_url(url)
-            data = get_results(uid)
-            for cid in data['httpcookie_set']:
-                if cid not in cookies['http']:
-                    cookies['http'].append(cid)
-            for cid in data['flashcookie_set']:
-                if cid not in cookies['flash']:
-                    cookies['flash'].append(cid)
-            for cid in data['localstoragecookie_set']:
-                if cid not in cookies['local']:
-                    cookies['local'].append(cid)
-            for cid in data['sessionstoragecookie_set']:
-                if cid not in cookies['session']:
-                    cookies['session'].append(cid)
+            if uid:
+                data = get_results(uid)
+                for cid in data['httpcookie_set']:
+                    if cid not in cookies['http']:
+                        cookies['http'].append(cid)
+                for cid in data['flashcookie_set']:
+                    if cid not in cookies['flash']:
+                        cookies['flash'].append(cid)
+                for cid in data['localstoragecookie_set']:
+                    if cid not in cookies['local']:
+                        cookies['local'].append(cid)
+                for cid in data['sessionstoragecookie_set']:
+                    if cid not in cookies['session']:
+                        cookies['session'].append(cid)
             q.task_done()
 
     # read the sitemap

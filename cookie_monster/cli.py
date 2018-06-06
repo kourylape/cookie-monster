@@ -4,9 +4,7 @@ import requests
 import time
 import sys
 import csv
-import threading
-
-from queue import Queue
+import json
 from cookie_monster.args import Args
 from bs4 import BeautifulSoup
 
@@ -71,7 +69,8 @@ def scan_url(url):
                 print('[SUCCESS] %s' % url)
                 break
 
-    if r.status_code != 201 or r.status_code != 409:
+    if r.status_code not in[200, 201, 409]:
+        print(r.json())
         print('[%s ERROR] Scanning: %s' % (r.status_code, url))
         return False
     else:
@@ -116,7 +115,6 @@ def main():
     """Main Function"""
     # main variables
     filename = ARGS.output
-    queue = Queue(maxsize=0)
     output = []
 
     # create any directories needed for the CSV
@@ -132,13 +130,15 @@ def main():
         'session': []
     }
 
-    # add to queue
-    def add_to_queue(i, q):
-        while True:
-            url = q.get()
-            uid = scan_url(url)
-            if uid:
-                data = get_results(uid)
+    # read the sitemap
+    urls = read_sitemap(ARGS.sitemap)
+
+    # get all the url_ids
+    for url in urls:
+        uid = scan_url(url)
+        if uid:
+            data = get_results(uid)
+            try:
                 for cid in data['httpcookie_set']:
                     if cid not in cookies['http']:
                         cookies['http'].append(cid)
@@ -151,55 +151,52 @@ def main():
                 for cid in data['sessionstoragecookie_set']:
                     if cid not in cookies['session']:
                         cookies['session'].append(cid)
-            q.task_done()
+            except:
+                print('ERROR!')
+                print(data)
+        time.sleep(1)
 
-    # read the sitemap
-    urls = read_sitemap(ARGS.sitemap)
+    # debug
+    print('[INFO] Finished Scanning Pages')
+    print('[INFO] HTTP Cookies: %i' % len(cookies['http']))
+    print('[INFO] Flash Cookies: %i' % len(cookies['flash']))
+    print('[INFO] Local Cookies: %i' % len(cookies['local']))
+    print('[INFO] Session Cookies: %i' % len(cookies['session']))
 
-    # create threads
-    for i in range(4):
-        worker = threading.Thread(target=add_to_queue, args=(i, queue))
-        worker.daemon = True
-        worker.start()
-
-    # get all the url_ids
-    for url in urls:
-        queue.put(url)
-
-    # finsih the queue/threads
-    try:
-        term = threading.Thread(target=queue.join)
-        term.daemon = True
-        term.start()
-        while (term.isAlive()):
-            term.join(600)
-    except:
-        print('ERROR - Could not join the thread pool!')
-        sys.exit(-1)
+    with open('cookies.tmp.json', 'w') as temp:
+        json.dump(cookies, temp)
+    print('[INFO] Saved Temporary JSON File')
 
     # get the HTTP cookies
     for cid in cookies['http']:
         url = 'https://webcookies.org/api2/http-cookie/%s' % cid
+        print('[INFO] %s' % url)
         data = get_cookie(url)
         output.append(read_cookie('http', cid, data))
 
     # get the flash cookies
     for cid in cookies['flash']:
         url = 'https://webcookies.org/api2/flash-cookie/%s' % cid
+        print('[INFO] %s' % url)
         data = get_cookie(url)
         output.append(read_cookie('flash', cid, data))
 
     # get the local storage
     for cid in cookies['local']:
         url = 'https://webcookies.org/api2/localstorage-cookie/%s' % cid
+        print('[INFO] %s' % url)
         data = get_cookie(url)
         output.append(read_cookie('local', cid, data))
 
     # get the session storage
     for cid in cookies['session']:
         url = 'https://webcookies.org/api2/sessionstorage-cookie/%s' % cid
+        print('[INFO] %s' % url)
         data = get_cookie(url)
         output.append(read_cookie('session', cid, data))
+
+    # debug
+    print('[INFO] Finished Retrieving Cookies')
 
     # save the output as a CSV
     with open(filename, 'w') as outfile:
